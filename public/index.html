@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isometric Terrain</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #333;
+        }
+        canvas {
+            background-color: #eee;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="terrainCanvas" width="1920" height="1080"></canvas>
+    <script>
+        const canvas = document.getElementById('terrainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const frameImage = new Image();
+        frameImage.src = 'frame.png'; // Provide the correct path to your frame image
+
+        const MiniMapFrameImage = new Image();
+        MiniMapFrameImage.src = 'MiniMapFrame.png'; // Provide the correct path to your frame image
+        const terrainImage = new Image();
+        terrainImage.src = 'map.png'; // Provide the correct path to your terrain image
+
+        const tileImages = {
+            '#884513': 'Dirt.png',        // Brown represents Dirt
+            '#111111': 'Rock.png',        // Grey represents Rock
+            '#00FF00': 'Grass.png',       // Green represents Grass
+            '#000083': 'water.png',        // Gold represents Sand
+        };
+
+        const tileWidth = 256;
+        const tileHeight = 128;
+        const moveSpeed = 10;
+        let playerX = -2000;
+        let playerY = -2000;
+        let keys = {};
+        let terrainData = [];
+        let tileImageCache = {};
+
+        terrainImage.onload = () => {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = terrainImage.width;
+            tempCanvas.height = terrainImage.height;
+            tempCtx.drawImage(terrainImage, 0, 0);
+            const imageData = tempCtx.getImageData(0, 0, terrainImage.width, terrainImage.height).data;
+
+            for (let y = 0; y < terrainImage.height; y++) {
+                const row = [];
+                for (let x = 0; x < terrainImage.width; x++) {
+                    const index = (y * terrainImage.width + x) * 4;
+                    const r = imageData[index];
+                    const g = imageData[index + 1];
+                    const b = imageData[index + 2];
+                    const color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+                    row.push(tileImages[color]);
+                }
+                terrainData.push(row);
+            }
+            
+            // Announce the terrain is loaded and how many tiles are in the terrain
+             requestAnimationFrame(drawTerrain);
+        };
+
+        document.addEventListener('keydown', function(event) {
+            keys[event.key] = true;
+        });
+
+        document.addEventListener('keyup', function(event) {
+            keys[event.key] = false;
+        });
+
+        function updatePosition() {
+            if (keys['w'] || keys['ArrowUp']) {
+                playerY += moveSpeed;
+            }
+            if (keys['a'] || keys['ArrowLeft']) {
+                playerX += moveSpeed;
+            }
+            if (keys['s'] || keys['ArrowDown']) {
+                playerY -= moveSpeed;
+            }
+            if (keys['d'] || keys['ArrowRight']) {
+                playerX -= moveSpeed;
+            }
+
+            // Clamp player position
+            playerX = Math.max(playerX, -((terrainData[0].length * tileWidth) - canvas.width));
+            playerX = Math.min(playerX, 0);
+            playerY = Math.max(playerY, -((terrainData.length * tileHeight / 2) - canvas.height));
+            playerY = Math.min(playerY, 0);
+        }
+
+        function drawTerrain() {
+            updatePosition();
+
+            // Clear canvas to black
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw terrain
+            for (let row = 0; row < terrainData.length; row++) {
+                for (let col = 0; col < terrainData[row].length; col++) {
+                    if (terrainData[row][col]) {
+                        if (!tileImageCache[terrainData[row][col]]) {
+                            const img = new Image();
+                            img.src = terrainData[row][col];
+                            tileImageCache[terrainData[row][col]] = img;
+                        }
+                        const tileImage = tileImageCache[terrainData[row][col]];
+                        const x = col * tileWidth + (row % 2 === 0 ? 0 : tileWidth / 2) + playerX;
+                        const y = row * (tileHeight / 2) + playerY;
+                        if (x > -tileWidth && x < canvas.width && y > -tileHeight && y < canvas.height) {
+                            ctx.drawImage(tileImage, x, y, tileWidth, tileHeight);
+                        }
+                    }
+                }
+            }
+
+            // Draw frame
+            ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+            // Display player position
+            ctx.font = "12px Arial";
+            ctx.fillStyle = "white";
+            ctx.fillText("Pos: " + (playerX) + " / " + playerY, 150, 110);
+            // Draw map.png in top right corner as a mini map and add a rectangle to show the current view
+
+            ctx.drawImage(terrainImage, canvas.width - 300, 100, 200, 200);  
+            ctx.strokeStyle = "blue";
+            ctx.strokeRect(canvas.width - 300 + ((0 - playerX) / (terrainData[0].length * tileWidth)) * 200,  100+ ((0-playerY) / (terrainData.length * tileHeight / 2)) * 200, canvas.width / terrainData[0].length, canvas.height / terrainData.length);
+            // Draw MiniMapFrame
+            ctx.drawImage(MiniMapFrameImage, canvas.width - 300, 100, 205, 205);
+            requestAnimationFrame(drawTerrain);
+        }
+    </script>
+</body>
+</html>
