@@ -33,21 +33,52 @@
         terrainImage.src = 'map.png'; // Provide the correct path to your terrain image
 
         const tileImages = {
-            '#884513': 'Dirt.png',        // Brown represents Dirt
-            '#111111': 'Rock.png',        // Grey represents Rock
-            '#00FF00': 'Grass.png',       // Green represents Grass
+            '#884513': 'Dirt.png',        // yellow represents sand
+            '#555555': 'Rock.png',        // Grey represents Rock
+            '#263709': 'Grass.png',       // Green represents Grass
             '#000083': 'water.png',        // Gold represents Sand
+            '#0000FF': 'foam.png',     // Cyan represents PondTop
         };
-
-        const tileWidth = 256;
-        const tileHeight = 128;
+        var player = {};    
+        const tileWidth = 64;
+        const tileHeight = 32;
         const moveSpeed = 10;
         let playerX = -2000;
         let playerY = -2000;
+        player.wood = 5000;
+        player.stone = 5000;
+        player.food = 5000;
+        player.gold = 5000;
+        player.iron = 5000;
+        player.coal = 5000;
+        player.copper = 5000;
+        player.tin = 5000;
+        player.silver = 5000;
+        player.lead = 5000;
+        player.zinc = 5000;
+        player.aluminium = 5000;
+        player.titanium = 5000;
+        player.magnesium = 5000;
+        player.nickel = 5000;
+        player.platinum = 5000;
+        player.Beds = 10;
+        player.Houses = 10;
+        player.Farms = 10;
+        player.Mines = 10;
+        player.Factories = 10;
+        player.Warehouses = 10;
+        player.Barracks = 10;
+        player.civilians = 10;
+        player.soldiers = 10;
+        let oceanmotion = 0;
+        let OceanMod = 1;
         let keys = {};
         let terrainData = [];
         let tileImageCache = {};
-
+                    //add foam to tileimagecache
+        var img = new Image();
+            img.src = 'foam.png';
+            tileImageCache['foam.png'] = img;
         terrainImage.onload = () => {
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
@@ -68,7 +99,8 @@
                 }
                 terrainData.push(row);
             }
-            
+
+
             // Announce the terrain is loaded and how many tiles are in the terrain
              requestAnimationFrame(drawTerrain);
         };
@@ -98,16 +130,21 @@
             // Clamp player position
             playerX = Math.max(playerX, -((terrainData[0].length * tileWidth) - canvas.width));
             playerX = Math.min(playerX, 0);
-            playerY = Math.max(playerY, -((terrainData.length * tileHeight / 2) - canvas.height));
-            playerY = Math.min(playerY, 0);
+            playerY = Math.max(playerY, -7000);
+            playerY = Math.min(playerY, -100);
         }
 
         function drawTerrain() {
             updatePosition();
 
             // Clear canvas to black
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if(tileImageCache['water.png'] == null)
+            {
+                const img = new Image();
+                img.src = 'water.png';
+                tileImageCache['water.png'] = img;
+            }
+            ctx.drawImage(tileImageCache['water.png'], 0, 0, canvas.width, canvas.height);
 
             // Draw terrain
             for (let row = 0; row < terrainData.length; row++) {
@@ -118,29 +155,99 @@
                             img.src = terrainData[row][col];
                             tileImageCache[terrainData[row][col]] = img;
                         }
-                        const tileImage = tileImageCache[terrainData[row][col]];
+                        
+                        var tileImage = tileImageCache[terrainData[row][col]];
                         const x = col * tileWidth + (row % 2 === 0 ? 0 : tileWidth / 2) + playerX;
                         const y = row * (tileHeight / 2) + playerY;
+                       
+                        
                         if (x > -tileWidth && x < canvas.width && y > -tileHeight && y < canvas.height) {
-                            ctx.drawImage(tileImage, x, y, tileWidth, tileHeight);
+                            if(terrainData[row][col] == 'water.png')
+                            {
+                            //if touching a non water tile
+                            if(terrainData[row][col+1] != 'water.png' || terrainData[row][col-1] != 'water.png' || terrainData[row+1][col] != 'water.png' || terrainData[row-1][col] != 'water.png' || terrainData[row+1][col+1] != 'water.png' || terrainData[row-1][col-1] != 'water.png')
+                                {
+                                    tileImage = tileImageCache['foam.png'];
+                                    ctx.drawImage(tileImage, x-tileWidth, y-tileHeight, tileWidth*4, tileHeight*4);
+                                } else {
+                                    tileImage = tileImageCache[terrainData[row][col]];
+                                }
+                               
+
+                                
+                                
+                               
+                            } else {
+                                ctx.drawImage(tileImage, x, y, tileWidth, tileHeight);
+                            }
+                            
                         }
                     }
                 }
             }
+            if(oceanmotion > 128)
+                            {
+                                OceanMod = -1;
+                            }
+                            if(oceanmotion < -128)
+                            {
+                                OceanMod = 2;
+                            }
+                           
 
+                            oceanmotion += OceanMod;
+            for (let row = 0; row < terrainData.length; row++) {
+                for (let col = 0; col < terrainData[row].length; col++) {
+                    if (terrainData[row][col]) {
+                        if (!tileImageCache[terrainData[row][col]]) {
+                            const img = new Image();
+                            img.src = terrainData[row][col];
+                            tileImageCache[terrainData[row][col]] = img;
+                        }
+                        
+                        var tileImage = tileImageCache[terrainData[row][col]];
+                        const x = col * tileWidth + (row % 2 === 0 ? 0 : tileWidth / 2) + playerX;
+                        const y = row * (tileHeight / 2) + playerY;
+                        if(terrainData[row][col] == 'water.png')
+                        if (x > -tileWidth && x < canvas.width && y > -tileHeight && y < canvas.height) {
+                            //if touching a non water tile
+                            if(terrainData[row][col+1] != 'water.png' || terrainData[row][col-1] != 'water.png' || terrainData[row+1][col] != 'water.png' || terrainData[row-1][col] != 'water.png' || terrainData[row+1][col+1] != 'water.png' || terrainData[row-1][col-1] != 'water.png')
+                            {
+                                tileImage = tileImageCache['foam.png'];
+                                ctx.drawImage(tileImage, x + (oceanmotion/4), y + (oceanmotion/8) , tileWidth *3, tileHeight*3);
+                            } else {
+                                tileImage = tileImageCache[terrainData[row][col]];
+                                ctx.drawImage(tileImage, x - (oceanmotion/8), y - (oceanmotion/16) , tileWidth*3, tileHeight*3);
+                            }
+
+                           
+                            
+                        }
+                    }
+                }
+            }
             // Draw frame
             ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
             // Display player position
             ctx.font = "12px Arial";
             ctx.fillStyle = "white";
             ctx.fillText("Pos: " + (playerX) + " / " + playerY, 150, 110);
+            //Display player resources
+            ctx.font = "30px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText("" + player.wood, 220, 68);  //Wood
+            ctx.fillText("" + player.stone, 420, 68);
+            ctx.fillText("" + player.food, 620, 68);
+            ctx.fillText("" + player.iron, 820, 68);
+            ctx.fillText("" + player.gold, 1020, 68);
+
             // Draw map.png in top right corner as a mini map and add a rectangle to show the current view
 
-            ctx.drawImage(terrainImage, canvas.width - 300, 100, 200, 200);  
-            ctx.strokeStyle = "blue";
-            ctx.strokeRect(canvas.width - 300 + ((0 - playerX) / (terrainData[0].length * tileWidth)) * 200,  100+ ((0-playerY) / (terrainData.length * tileHeight / 2)) * 200, canvas.width / terrainData[0].length, canvas.height / terrainData.length);
+            ctx.drawImage(terrainImage, canvas.width - 300, 100, 200, 300);  
+            ctx.strokeStyle = "white";
+            ctx.strokeRect(canvas.width - 300 + ((0 - playerX) / (terrainData[0].length * tileWidth)) * 200,  100+ ((0-playerY) / (terrainData.length * tileHeight / 2)) * 300, canvas.width / terrainData[0].length *4 , canvas.height / terrainData.length *20);
             // Draw MiniMapFrame
-            ctx.drawImage(MiniMapFrameImage, canvas.width - 300, 100, 205, 205);
+            ctx.drawImage(MiniMapFrameImage, canvas.width - 300, 100, 205, 305);
             requestAnimationFrame(drawTerrain);
         }
     </script>
